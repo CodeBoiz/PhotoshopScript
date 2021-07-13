@@ -1,7 +1,7 @@
 //Set Units
 app.preferences.rulerUnits = Units.PIXELS
 
-var fileRef = File("C:\\Users\\devin\\OneDrive\\Desktop\\Etsy\\BellaMainMockup.jpg")
+var fileRef = File("C:\\Users\\jones\\Downloads\\dark-grey-heather_1.psd")
 var mainFolder = Folder.selectDialog('Select Folder With Original Designs');
 var transparentFolder = Folder.selectDialog('Select Folder For Outputting Transparent Designs');
 var thumbnailFolder = Folder.selectDialog('Select Folder For Outputting Thumbsnails');
@@ -37,6 +37,69 @@ for(var i = 0; i < files.length; i++)
         executeAction( cTID("ClrR"), desc, DialogModes.NO );
     }
 
+    function getLyrs() {
+        var ids = [];
+        var layers, desc, vis, type, id;
+    
+        try
+        {
+          activeDocument.backgroundLayer;
+          layers = 0;
+        }
+        catch (e)
+        {
+          layers = 1;
+        }
+    
+        while (true)
+        {
+          ref = new ActionReference();
+          ref.putIndex(charIDToTypeID('Lyr '), layers);
+          try
+          {
+            desc = executeActionGet(ref);
+          }
+          catch (err)
+          {
+            break;
+          }
+          vis = desc.getBoolean(charIDToTypeID("Vsbl"));
+          type = desc.getInteger(stringIDToTypeID("layerKind"));
+          id = desc.getInteger(stringIDToTypeID("layerID"));
+          if (type == 5 && vis) ids.push(id);
+          layers++;
+        }
+        return ids;
+    
+    } // end of getLyrs()
+
+    function selectById(id) {
+        var desc = new ActionDescriptor();
+        var ref = new ActionReference();
+        ref.putIdentifier(charIDToTypeID('Lyr '), id);
+        desc.putReference(charIDToTypeID('null'), ref);
+        executeAction(charIDToTypeID('slct'), desc, DialogModes.NO);
+    } // end of selectById()
+    
+    function relinkSO(path) {
+      var desc = new ActionDescriptor();
+      desc.putPath( charIDToTypeID('null'), new File( path ) );
+      executeAction( stringIDToTypeID('placedLayerRelinkToFile'), desc, DialogModes.NO );
+    } // end of relinkSO()
+    
+    function embedLinked() {
+      executeAction( stringIDToTypeID('placedLayerConvertToEmbedded'), undefined, DialogModes.NO );
+    } // end of embedLinked()
+
+    function savePng(name, folder, quality){
+        var doc = app.activeDocument;
+        var file = new File(folder + '/' + name + '.jpg');
+        var opts = new PNGSaveOptions();
+        opts.quality = quality;
+        opts.embedColorProfile = true;
+        doc.saveAs(file, opts, true);
+    }
+
     //Delete Background
     activeDocument.selection.clear()
     activeDocument.selection.deselect()
@@ -53,62 +116,18 @@ for(var i = 0; i < files.length; i++)
 
     //Load Mockup    
     docRef = app.open(fileRef)
-    
-    //Add Layer
-    var artLayerRef = docRef.artLayers.add()
 
-    //Load Image from File (From Folder eventually)
-    var idPlc = charIDToTypeID( "Plc " ); 
-    var desc11 = new ActionDescriptor();  
-    var idnull = charIDToTypeID( "null" );
-    desc11.putPath( idnull, file );
-    var idFTcs = charIDToTypeID( "FTcs" ); 
-    var idQCSt = charIDToTypeID( "QCSt" );   
-    var idQcsa = charIDToTypeID( "Qcsa" ); 
-    desc11.putEnumerated( idFTcs, idQCSt, idQcsa );
-    var idOfst = charIDToTypeID( "Ofst" );     
-    var desc12 = new ActionDescriptor();     
-    var idHrzn = charIDToTypeID( "Hrzn" );    
-    var idPxl = charIDToTypeID( "#Pxl" );      
-    desc12.putUnitDouble( idHrzn, idPxl, 0.000000 );     
-    var idVrtc = charIDToTypeID( "Vrtc" );    
-    var idPxl = charIDToTypeID( "#Pxl" );    
-    desc12.putUnitDouble( idVrtc, idPxl, 0.000000 );
-    var idOfst = charIDToTypeID( "Ofst" );
-    desc11.putObject( idOfst, idOfst, desc12 );
-    executeAction( idPlc, desc11, DialogModes.NO );
+    // gets IDs of all smart objects
+    var lyrs = getLyrs();
 
-    //Place Image
-    var newSize = 40
-    activeDocument.activeLayer.resize(newSize, newSize, AnchorPosition.MIDDLECENTER)
+    // select it
+    selectById(lyrs[0]);
 
-    var angle = 4
-    activeDocument.activeLayer.rotate(angle, AnchorPosition.MIDDLECENTER)
+    // relink SO to file
+    relinkSO(transparentFile);
 
-    var deltaX = -15
-    var deltaY = -30
-    activeDocument.activeLayer.translate(deltaX, deltaY)
+    // embed linked if you want
+    embedLinked()
 
-    //Edit Content of Layer
-    app.runMenuItem(stringIDToTypeID('placedLayerEditContents'))
-
-    //Select Background
-    selectColorRange(
-        RGBc(0.0, 0.0, 0.0),
-        RGBc(3.0, 3.0, 3.0)
-    );
-
-    //Delete Background
-    activeDocument.selection.clear()
-    activeDocument.selection.deselect
-
-    //Close
-    activeDocument.close(SaveOptions.SAVECHANGES)
-
-    //Save (all layers) as one image
-    var thumbnailFile = new File(thumbnailFolder + "/"+ designName + " Thumbnail.png")
-    activeDocument.saveAs(thumbnailFile, pngSaveOptions, true, Extension.LOWERCASE)
-
-    //Close
-    activeDocument.close(SaveOptions.DONOTSAVECHANGES)
+    savePng("Thumbnail_" + i, thumbnailFolder, 12);
 }
