@@ -1,7 +1,7 @@
 //Set Units
 app.preferences.rulerUnits = Units.PIXELS
 
-var fileRef = File("C:\\Users\\devin\\OneDrive\\Desktop\\Etsy\\BellaMainMockup.jpg")
+var fileRef = File("C:\\Users\\jones\\Downloads\\dark-grey-heather_1.psd")
 var mainFolder = Folder.selectDialog('Select Folder With Original Designs');
 var transparentFolder = Folder.selectDialog('Select Folder For Outputting Transparent Designs');
 var thumbnailFolder = Folder.selectDialog('Select Folder For Outputting Thumbsnails');
